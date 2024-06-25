@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const express = require("express");
 const router = express.Router();
 const User = require("../models/user");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const checkauth = require("../middleware/checkauth");
 const user = require("../models/user");
@@ -58,15 +57,14 @@ router.post("/signup", (req, res, next) => {
   });
 });
 router.post("/login", (req, res, next) => {
-  User.find({ username: req.body.username })
-    .exec()
-    .then((user) => {
-      if (user.length < 1) {
+  const user=User.findOne({ username: req.body.username })
+    
+  try{ if (!user) {
         return res.status(401).json({
           msg: "user not exist",
         });
       }
-      bcrypt.compare(req.body.password, user[0].password, (err, result) => {
+      bcrypt.compare(req.body.password, user.password, (err, result) => {
         if (!result) {
           return res.status(401).json({
             msg: "invalid credentials",
@@ -75,9 +73,9 @@ router.post("/login", (req, res, next) => {
         if (result) {
           const token = jwt.sign(
             {
-              username: user[0].username,
-              email: user[0].email,
-              phone: user[0].phone
+              username: user.username,
+              email: user.email,
+              phone: user.phone
             },
             "this is dummy text",
             {
@@ -85,21 +83,18 @@ router.post("/login", (req, res, next) => {
             }
           );
           res.status(200).json({
-            username: user[0].username,
-            email: user[0].email,
-            phone: user[0].phone,
+            username: user.username,
+            email: user.email,
+            phone: user.phone,
             token: token,
           });
         }
       });
-    })
-    .catch((err) => {
-      if (err) {
-        return res.status(500).json({
-          error: err,
-        });
-      }
+}catch(err){
+  res.status(500).json({
+    error: err,
     });
+}
 });
 
 module.exports = router;

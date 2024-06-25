@@ -57,14 +57,15 @@ router.post("/signup", (req, res, next) => {
   });
 });
 router.post("/login", (req, res, next) => {
-  const user=User.findOne({ username: req.body.username })
-    
-  try{ if (!user) {
+  User.find({ username: req.body.username })
+    .exec()
+    .then((user) => {
+      if (user.length < 1) {
         return res.status(401).json({
           msg: "user not exist",
         });
       }
-      bcrypt.compare(req.body.password, user.password, (err, result) => {
+      bcrypt.compare(req.body.password, user[0].password, (err, result) => {
         if (!result) {
           return res.status(401).json({
             msg: "invalid credentials",
@@ -73,9 +74,9 @@ router.post("/login", (req, res, next) => {
         if (result) {
           const token = jwt.sign(
             {
-              username: user.username,
-              email: user.email,
-              phone: user.phone
+              username: user[0].username,
+              email: user[0].email,
+              phone: user[0].phone
             },
             "this is dummy text",
             {
@@ -83,18 +84,21 @@ router.post("/login", (req, res, next) => {
             }
           );
           res.status(200).json({
-            username: user.username,
-            email: user.email,
-            phone: user.phone,
+            username: user[0].username,
+            email: user[0].email,
+            phone: user[0].phone,
             token: token,
           });
         }
       });
-}catch(err){
-  res.status(500).json({
-    error: err,
+    })
+    .catch((err) => {
+      if (err) {
+        return res.status(500).json({
+          error: err,
+        });
+      }
     });
-}
 });
 
 module.exports = router;
